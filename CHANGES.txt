@@ -1,4 +1,10 @@
 4.0
+ * Add a few options to nodetool verify (CASSANDRA-14201)
+ * CVE-2017-5929 Security vulnerability and redefine default log rotation policy (CASSANDRA-14183)
+ * Use JVM default SSL validation algorithm instead of custom default (CASSANDRA-13259)
+ * Better document in code InetAddressAndPort usage post 7544, incorporate port into UUIDGen node (CASSANDRA-14226)
+ * Fix sstablemetadata date string for minLocalDeletionTime (CASSANDRA-14132)
+ * Make it possible to change neverPurgeTombstones during runtime (CASSANDRA-14214)
  * Remove GossipDigestSynVerbHandler#doSort() (CASSANDRA-14174)
  * Add nodetool clientlist (CASSANDRA-13665)
  * Revert ProtocolVersion changes from CASSANDRA-7544 (CASSANDRA-14211)
@@ -185,9 +191,18 @@
  * Switch to client init for sstabledump (CASSANDRA-13683)
  * CQLSH: Don't pause when capturing data (CASSANDRA-13743)
  * nodetool clearsnapshot requires --all to clear all snapshots (CASSANDRA-13391)
+ * Correctly count range tombstones in traces and tombstone thresholds (CASSANDRA-8527)
+
+3.11.3
+ * RateBasedBackPressure unnecessarily invokes a lock on the Guava RateLimiter  (CASSANDRA-14163)
+ * Fix wildcard GROUP BY queries (CASSANDRA-14209)
+Merged from 3.0:
+ * Pre-create deletion log records to finish compactions quicker (CASSANDRA-12763)
 
 
 3.11.2
+ * Fix ReadCommandTest (CASSANDRA-14234)
+ * Remove trailing period from latency reports at keyspace level (CASSANDRA-14233)
  * Remove dependencies on JVM internal classes from JMXServerUtils (CASSANDRA-14173) 
  * Add DEFAULT, UNSET, MBEAN and MBEANS to `ReservedKeywords` (CASSANDRA-14205)
  * Print correct snitch info from nodetool describecluster (CASSANDRA-13528)
@@ -205,6 +220,9 @@
  * Update jackson JSON jars (CASSANDRA-13949)
  * Avoid locks when checking LCS fanout and if we should defrag (CASSANDRA-13930)
 Merged from 3.0:
+ * Fix unit test failures in ViewComplexTest (CASSANDRA-14219)
+ * Add MinGW uname check to start scripts (CASSANDRA-12840)
+ * Use the correct digest file and reload sstable metadata in nodetool verify (CASSANDRA-14217)
  * Handle failure when mutating repaired status in Verifier (CASSANDRA-13933)
  * Set encoding for javadoc generation (CASSANDRA-14154)
  * Fix index target computation for dense composite tables with dropped compact storage (CASSANDRA-14104)
@@ -233,6 +251,7 @@ Merged from 2.2:
  * Rely on the JVM to handle OutOfMemoryErrors (CASSANDRA-13006)
  * Grab refs during scrub/index redistribution/cleanup (CASSANDRA-13873)
 Merged from 2.1:
+ * Protect against overflow of local expiration time (CASSANDRA-14092)
  * RPM package spec: fix permissions for installed jars and config files (CASSANDRA-14181)
  * More PEP8 compliance for cqlsh
 

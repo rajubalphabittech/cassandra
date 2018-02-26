@@ -41,6 +41,7 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.UntypedResultSet;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Keyspace;
+import org.apache.cassandra.db.compaction.Verifier;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
@@ -56,6 +57,8 @@ import org.apache.cassandra.streaming.StreamSession;
 import org.apache.cassandra.streaming.StreamOperation;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
+
+import static org.junit.Assert.fail;
 
 /**
  * Tests backwards compatibility for SSTables
@@ -93,7 +96,7 @@ public class LegacySSTableTest
     public static void defineSchema() throws ConfigurationException
     {
         String scp = System.getProperty(LEGACY_SSTABLE_PROP);
-        Assert.assertNotNull("System property " + LEGACY_SSTABLE_ROOT + " not set", scp);
+        Assert.assertNotNull("System property " + LEGACY_SSTABLE_PROP + " not set", scp);
 
         LEGACY_SSTABLE_ROOT = new File(scp).getAbsoluteFile();
         Assert.assertTrue("System property " + LEGACY_SSTABLE_ROOT + " does not specify a directory", LEGACY_SSTABLE_ROOT.isDirectory());
@@ -191,6 +194,40 @@ public class LegacySSTableTest
         {
             streamLegacyTables(legacyVersion);
             verifyReads(legacyVersion);
+        }
+    }
+
+    @Test
+    public void testVerifyOldSSTables() throws IOException
+    {
+        for (String legacyVersion : legacyVersions)
+        {
+            ColumnFamilyStore cfs = Keyspace.open("legacy_tables").getColumnFamilyStore(String.format("legacy_%s_simple", legacyVersion));
+            loadLegacyTable("legacy_%s_simple", legacyVersion);
+
+            for (SSTableReader sstable : cfs.getLiveSSTables())
+            {
+                try (Verifier verifier = new Verifier(cfs, sstable, false, Verifier.options().checkVersion(true).build()))
+                {
+                    verifier.verify();
+                    if (!sstable.descriptor.version.isLatestVersion())
+                        fail("Verify should throw RuntimeException for old sstables "+sstable);
+                }
+                catch (RuntimeException e)
+                {}
+            }
+            // make sure we don't throw any exception if not checking version:
+            for (SSTableReader sstable : cfs.getLiveSSTables())
+            {
+                try (Verifier verifier = new Verifier(cfs, sstable, false, Verifier.options().checkVersion(false).build()))
+                {
+                    verifier.verify();
+                }
+                catch (Throwable e)
+                {
+                    fail("Verify should throw RuntimeException for old sstables "+sstable);
+                }
+            }
         }
     }
 

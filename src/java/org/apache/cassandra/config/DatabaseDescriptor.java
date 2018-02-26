@@ -60,6 +60,7 @@ import org.apache.cassandra.locator.SeedProvider;
 import org.apache.cassandra.net.BackPressureStrategy;
 import org.apache.cassandra.net.RateBasedBackPressure;
 import org.apache.cassandra.security.EncryptionContext;
+import org.apache.cassandra.security.SSLFactory;
 import org.apache.cassandra.service.CacheService.CacheType;
 import org.apache.cassandra.utils.FBUtilities;
 
@@ -322,6 +323,8 @@ public class DatabaseDescriptor
         applySeedProvider();
 
         applyEncryptionContext();
+
+        applySslContextHotReload();
     }
 
     private static void applySimpleConfig()
@@ -863,6 +866,11 @@ public class DatabaseDescriptor
         // always attempt to load the cipher factory, as we could be in the situation where the user has disabled encryption,
         // but has existing commitlogs and sstables on disk that are still encrypted (and still need to be read)
         encryptionContext = new EncryptionContext(conf.transparent_data_encryption_options);
+    }
+
+    public static void applySslContextHotReload()
+    {
+        SSLFactory.initHotReloading(conf.server_encryption_options, conf.client_encryption_options, false);
     }
 
     public static void applySeedProvider()
@@ -1717,6 +1725,12 @@ public class DatabaseDescriptor
         broadcastAddress = broadcastAdd;
     }
 
+    /**
+     * This is the address used to bind for the native protocol to communicate with clients. Most usages in the code
+     * refer to it as native address although some places still call it RPC address. It's not thrift RPC anymore
+     * so native is more appropriate. The address alone is not enough to uniquely identify this instance because
+     * multiple instances might use the same interface with different ports.
+     */
     public static InetAddress getRpcAddress()
     {
         return rpcAddress;
@@ -1728,7 +1742,12 @@ public class DatabaseDescriptor
     }
 
     /**
-     * May be null, please use {@link FBUtilities#getBroadcastRpcAddress()} instead.
+     * This is the address used to reach this instance for the native protocol to communicate with clients. Most usages in the code
+     * refer to it as native address although some places still call it RPC address. It's not thrift RPC anymore
+     * so native is more appropriate. The address alone is not enough to uniquely identify this instance because
+     * multiple instances might use the same interface with different ports.
+     *
+     * May be null, please use {@link FBUtilities#getBroadcastNativeAddressAndPort()} instead.
      */
     public static InetAddress getBroadcastRpcAddress()
     {
@@ -1755,6 +1774,10 @@ public class DatabaseDescriptor
         return conf.start_native_transport;
     }
 
+    /**
+     *  This is the port used with RPC address for the native protocol to communicate with clients. Now that thrift RPC
+     *  is no longer in use there is no RPC port.
+     */
     public static int getNativeTransportPort()
     {
         return Integer.parseInt(System.getProperty(Config.PROPERTY_PREFIX + "native_transport_port", Integer.toString(conf.native_transport_port)));
